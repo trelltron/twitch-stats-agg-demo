@@ -63,5 +63,4 @@ func (twitch *Client) getNewToken() error {
 	}
 	twitch.bearerToken = resData.Token
 	return nil
-
 }

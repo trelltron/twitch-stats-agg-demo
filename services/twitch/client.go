@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-const BaseURL = "https://api.twitch.tv/helix"
+const DefaultBaseURL = "https://api.twitch.tv/helix"
 
 type ApiError struct {
 	StatusCode int
@@ -25,6 +25,7 @@ type IClient interface {
 
 type Client struct {
 	Log                slog.Logger
+	BaseURL            string
 	clientId           string
 	clientSecret       string
 	bearerToken        string
@@ -39,6 +40,7 @@ func BuildClient(log slog.Logger) *Client {
 
 	return &Client{
 		Log:                log,
+		BaseURL:            DefaultBaseURL,
 		clientId:           clientId,
 		clientSecret:       clientSecret,
 		refreshBearerToken: true,
@@ -50,7 +52,7 @@ func (twitch *Client) get(path string, params url.Values) (*http.Response, error
 }
 
 func (twitch *Client) makeRequestWithAuth(method string, path string, params url.Values) (*http.Response, error) {
-	fullUrl := fmt.Sprintf("%s/%s", BaseURL, strings.TrimPrefix(path, "/"))
+	fullUrl := fmt.Sprintf("%s/%s", twitch.BaseURL, strings.TrimPrefix(path, "/"))
 	req, err := http.NewRequest(method, fullUrl, nil)
 	if err != nil {
 		return nil, err
@@ -69,6 +71,7 @@ func (twitch *Client) makeRequestWithAuth(method string, path string, params url
 	response, err := http.DefaultClient.Do(req)
 
 	if err == nil && response.StatusCode == 401 {
+		// TODO handle credential refresh properly and retry
 		twitch.Log.Warn("Got 401 response - invalidating bearer token")
 		twitch.refreshBearerToken = true
 	}
